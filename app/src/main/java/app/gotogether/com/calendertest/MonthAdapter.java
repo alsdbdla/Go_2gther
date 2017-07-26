@@ -6,7 +6,6 @@ import android.text.format.Time;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -24,11 +23,11 @@ import java.util.Calendar;
 public class MonthAdapter extends BaseAdapter {
 
 	public static final String TAG = "MonthAdapter";
-	private LayoutInflater layoutInflater;
+	//private LayoutInflater layoutInflater;
 
 	Context mContext;
 
-	public static int oddColor = Color.rgb(225, 225, 225);
+	public static int oddColor = Color.rgb(225, 225, 225); // 색지정
 	public static int headColor = Color.rgb(12, 32, 158);
 
 	private int selectedPosition = -1;
@@ -39,13 +38,13 @@ public class MonthAdapter extends BaseAdapter {
 
 	int mStartDay;
 	int startDay;
-	int curYear;
-	int curMonth;
+	int curYear; // 현재 년도
+	int curMonth; // 현재 월
 
-	int firstDay;
-	int lastDay;
+	int firstDay; // 첫날
+	int lastDay; // 마지막날
 
-	Calendar mCalendar;
+	Calendar mCalendar; // 달력
 	boolean recreateItems = false;
 
 	public MonthAdapter(Context context) {
@@ -73,6 +72,7 @@ public class MonthAdapter extends BaseAdapter {
 
 	}
 
+	// 달력 날짜 계산
 	public void recalculate() {
 
 		// set to the first day of the month
@@ -96,6 +96,7 @@ public class MonthAdapter extends BaseAdapter {
 
 	}
 
+	// 이전달
 	public void setPreviousMonth() {
 		mCalendar.add(Calendar.MONTH, -1);
         recalculate();
@@ -104,6 +105,7 @@ public class MonthAdapter extends BaseAdapter {
         selectedPosition = -1;
 	}
 
+	// 다음달
 	public void setNextMonth() {
 		mCalendar.add(Calendar.MONTH, 1);
         recalculate();
@@ -159,10 +161,10 @@ public class MonthAdapter extends BaseAdapter {
 	public int getNumColumns() {
 		return 7;
 	}
-
 	public int getCount() {
 		return 7 * 6;
 	}
+
 
 	public Object getItem(int position) {
 		return items[position];
@@ -174,12 +176,13 @@ public class MonthAdapter extends BaseAdapter {
 
 
 
-	// 커스텀뷰
+	// 커스텀뷰 모양을 만들어줌
 	public View getView(int position, View convertView, ViewGroup parent) {
 		Log.d(TAG, "getView(" + position + ") called.");
 
 
 		MonthItemView itemView;
+
 		if (convertView == null) {
 			itemView = new MonthItemView(mContext);
 		} else {
@@ -197,6 +200,7 @@ public class MonthAdapter extends BaseAdapter {
 
 		Log.d(TAG, "Index : " + rowIndex + ", " + columnIndex);
 
+		// 그리드뷰 하나하나에 대한 ?
 		// set item data and properties
 		itemView.setItem(items[position]);
 		itemView.setLayoutParams(params);

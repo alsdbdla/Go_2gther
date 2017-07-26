@@ -16,12 +16,13 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 public class BossPage extends AppCompatActivity {
@@ -64,9 +65,21 @@ public class BossPage extends AppCompatActivity {
      * 현재 월
      */
     int curMonth;
+    int curDay;
 
-    private int startYear, startMonth, startDay, endYear, endMonth, endDay;
+    String content;
 
+    String me;
+
+    EditText edit;
+
+    private int startYear, startMonth, startDay;
+
+    ArrayAdapter<String> adapter;
+    ArrayList<String> as;
+    ArrayList<DayData> dayData;
+    ArrayList <participant> part;
+    ListView lv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,9 +88,22 @@ public class BossPage extends AppCompatActivity {
         setContentView(R.layout.activity_boss_page);
 
         // 월별 캘린더 뷰 객체 참조
+        // 어댑터 생성
         monthView = (GridView) findViewById(R.id.monthView);
-        monthViewAdapter = new MonthAdapter(this);
+        monthViewAdapter = new MonthAdapter(this); // 어댑터
         monthView.setAdapter(monthViewAdapter);
+
+
+        // 달력 누르면 아래에 일정 뜨게
+
+        dayData = new ArrayList<DayData>();
+
+        //ArrayList<String> ts = new ArrayList<String>();
+        //ts.add("1");
+        //ts.add("2");
+
+        lv = (ListView)findViewById(R.id.listView);
+
 
         // 리스너 설정
         monthView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -85,16 +111,55 @@ public class BossPage extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 // 현재 선택한 일자 정보 표시
                 MonthItem curItem = (MonthItem) monthViewAdapter.getItem(position);
-                int day = curItem.getDay();
+                curDay = curItem.getDay();
+                as = new ArrayList<String>();
+                for(int i =0; i< dayData.size();i++){
+                    if(dayData.get(i).getDay() ==curDay){
+                        as.add(dayData.get(i).getScadule()); // 스케쥴 가져오기
+                    }
+                }
 
-                String dayS = Integer.valueOf(day).toString();
-                String monthS = Integer.valueOf(curMonth).toString();
-                String yearS = Integer.valueOf(curYear).toString();
+                // 리스트뷰 클릭시 참석 여부 질문
 
-                Toast.makeText(BossPage.this, dayS + monthS + yearS, Toast.LENGTH_SHORT).show();
+                updateLv();
+
             }
         });
 
+        lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                // TODO Auto-generated method stub
+
+                me = "최예슬"; // 현재 접속자로 가정
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(BossPage.this);
+                builder.setTitle("참석여부");
+                builder.setMessage("참석하시겠습니까?");
+
+                // 이미 참석했을 경우, 아직 참석하지 않은 경우로 나누어야함
+                // 각각의 스케쥴 마다
+
+                builder.setPositiveButton("네", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // 현재 접속하고 있는 사람의 이름을 리스트에 넣어준다
+
+                        part = new ArrayList<participant>();
+                        part.add(new participant(2017, 7, 25, me)); // 참석자 목록에 나를 넣는다
+
+
+                    }});
+                builder.setNegativeButton("아니요", null);
+
+                builder.create().show();
+
+                updateLv();
+
+                return false;
+            }
+
+        });
 
         // 넘어가는 월 처리
 
@@ -137,9 +202,9 @@ public class BossPage extends AppCompatActivity {
         monthText.setText(curYear + "년 " + (curMonth + 1) + "월");
     }
 
-    // 일정 추가 코드
     public void onClick(View v){
         switch(v.getId()){
+            // 일정 추가 코드
             case R.id.plus :
 
                 // Inflate your custom layout containing 2 DatePickers
@@ -153,18 +218,33 @@ public class BossPage extends AppCompatActivity {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setView(customView); // Set the view of the dialog to your custom layout
                 builder.setTitle("일정추가");
+
+                View view = (View) getLayoutInflater().inflate(R.layout.activity_datetimepicker, null);
+                edit = (EditText)view.findViewById(R.id.editText2);
+
                 builder.setPositiveButton("추가", new DialogInterface.OnClickListener(){
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         startYear = dpStartDate.getYear();
-                        startMonth = dpStartDate.getMonth();
+                        startMonth = dpStartDate.getMonth() + 1;
                         startDay = dpStartDate.getDayOfMonth();
 
-                        String year = Integer.valueOf(startYear).toString();
-                        String month = Integer.valueOf(startMonth).toString();
-                        String day = Integer.valueOf(startDay).toString();
+                        //String year = Integer.valueOf(startYear).toString();
+                        //String month = Integer.valueOf(startMonth).toString();
+                        //String day = Integer.valueOf(startDay).toString();
 
-                        Toast.makeText(BossPage.this, year + month + day, Toast.LENGTH_SHORT).show();
+                        // 나중에 수정
+                        //TextView text = (TextView) findViewById(R.id.title);
+                        content = edit.getText().toString(); // 일정내용
+
+                        dayData = new ArrayList<DayData>();
+                        // 우선은 일정 하나만 추가 가능하도록
+                        // editText 수정
+                        dayData.add(new DayData(startYear, startMonth, startDay, "하띵하띵"));
+
+                        // 후에 추가하면 동그라미 버튼 나타나게 or 색이 바뀌게
+
+                        //Toast.makeText(BossPage.this, year + month + day , Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     }});
                 builder.setNegativeButton("취소", null);
@@ -177,6 +257,7 @@ public class BossPage extends AppCompatActivity {
             //case R.id.btnTest1 :
             //captureCamera();
             //break;
+            // 이름 변경 코드
             case R.id.btnSet :
                 getAlbum();
                 break;
@@ -242,6 +323,8 @@ public class BossPage extends AppCompatActivity {
 
 
 
+
+    // 카메라코드
 
     private File createImageFile() throws IOException {
         // Create an image file name
@@ -323,6 +406,12 @@ public class BossPage extends AppCompatActivity {
                 //uploadFile(mCurrentPhotoPath);
                 break;
         }
+    }
+
+    // 리스트뷰 업데이트
+    public void updateLv(){
+        adapter= new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,as);
+        lv.setAdapter(adapter);
     }
 
 

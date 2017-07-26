@@ -35,6 +35,7 @@ public class MonthItemView extends AppCompatTextView {
 		return item;
 	}
 
+	// 날짜 입력
 	public void setItem(MonthItem item) {
 		this.item = item;
 		
