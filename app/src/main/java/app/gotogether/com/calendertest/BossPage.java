@@ -15,6 +15,7 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,19 +52,27 @@ public class BossPage extends AppCompatActivity {
     ArrayList<String> as;
     //ArrayList<DayData> dayData;
     ListView lv;
+    ArrayList<String> team_list; // 팀리스트 배열
+    ListView team_lv; // 팀리스트 리스트뷰
 
-    // 서버코드
+    // 서버코드 - 스케쥴 불러오기
     private static String TAG = "schedule_test";
     private TextView mTextViewResult; //insert 성공시 보여주는것 - 앱에서 불필요함
 
-    // 서버코드
+    // 서버코드 - 스케쥴 일단 2로 지정 (나중에 이름 바꾸기)
     private static String TAG2 = "schedule_json";
-
-    private static final String TAG_JSON="schedule_json";
-    private static final String TAG_ID = "id";
-    private static final String TAG_GroupID = "groupId";
+    private static final String TAG_JSON2="schedule_json";
+    private static final String TAG_ID2 = "id";
+    private static final String TAG_GroupID2 = "groupId";
     private static final String TAG_Date = "date";
     private static final String TAG_Plan="plan";
+
+    // 서버 - 그룹리스트 불러오기
+
+    private static String TAG3 = "grouplist_json";
+    private static final String TAG_JSON="grouplist_json";
+    private static final String TAG_GroupID = "id";
+    private static final String TAG_GroupName = "name";
 
     //ArrayList<HashMap<String, String>> mArrayList;
     //ListView mlistView;
@@ -91,6 +100,8 @@ public class BossPage extends AppCompatActivity {
 
 
 
+
+
         // 리스너 설정
         monthView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -108,6 +119,7 @@ public class BossPage extends AppCompatActivity {
 
                 GetData task = new GetData();
                 task.execute("http://211.253.9.84/getschedule.php");
+
 
             }
         });
@@ -290,18 +302,34 @@ public class BossPage extends AppCompatActivity {
 
                 AlertDialog.Builder member = new AlertDialog.Builder(BossPage.this);
 
+                final LinearLayout member_view = (LinearLayout)View.inflate(this, R.layout.activity_information, null);
+                member.setView(member_view); // 리스트뷰 다이얼로그에 넣기
                 member.setTitle("팀원관리");       // 제목 설정
-                member.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                member.setPositiveButton("확인", new DialogInterface.OnClickListener(){
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();     //닫기
-                        // Event
-                    }
 
-                });
+                        LayoutInflater inflater = (LayoutInflater) getLayoutInflater();
+                        View customView = inflater.inflate(R.layout.activity_information, null);
+
+                        team_lv = (ListView)customView.findViewById(R.id.team_listView);
+
+                    }});
+
                 member.setAdapter(addressAdapter, null);
 
                 member.show();
+
+                break;
+
+            case R.id.alarm :
+                // 그룹 정보 불러오기
+                mTextViewResult = (TextView)findViewById(R.id.result_text);
+
+                // 팀원리스트 DB 갖고오기 -> 팀원 수 계산 , 팀장 이름 갖고오기
+
+                GetData2 task = new GetData2(); // 서버에서 데이터 갖고오기
+                task.execute("http://211.253.9.84/getgrouplist.php");
 
                 break;
 
@@ -313,6 +341,12 @@ public class BossPage extends AppCompatActivity {
     public void updateLv(){
         adapter= new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,as);
         lv.setAdapter(adapter);
+    }
+
+    // 리스트뷰 업데이트
+    public void updateLv2(){
+        adapter= new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,team_list);
+        team_lv.setAdapter(adapter);
     }
 
 
@@ -439,7 +473,7 @@ public class BossPage extends AppCompatActivity {
             else {
 
                 mJsonString = result;
-                showResult();
+                showResult_sche();
             }
         }
 
@@ -502,17 +536,17 @@ public class BossPage extends AppCompatActivity {
     }
 
 
-    private void showResult(){
+    private void showResult_sche(){
         try {
 
             JSONObject jsonObject = new JSONObject(mJsonString);
-            JSONArray jsonArray = jsonObject.getJSONArray(TAG_JSON);
+            JSONArray jsonArray = jsonObject.getJSONArray(TAG_JSON2);
 
             for(int i=0;i<jsonArray.length();i++){
 
                 JSONObject item = jsonArray.getJSONObject(i);
-                String id = item.getString(TAG_ID);
-                String groupId = item.getString(TAG_GroupID);
+                String id = item.getString(TAG_ID2);
+                String groupId = item.getString(TAG_GroupID2);
                 String date = item.getString(TAG_Date);
                 String plan = item.getString(TAG_Plan);
 
@@ -539,6 +573,149 @@ public class BossPage extends AppCompatActivity {
         }
 
     }
+
+    // 서버코드3 - 팀원리스트 받아오기
+    private class GetData2 extends AsyncTask<String, Void, String>{
+        ProgressDialog progressDialog;
+        String errorString = null;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            progressDialog = ProgressDialog.show(BossPage.this,
+                    "Please Wait", null, true, true);
+        }
+
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+
+            progressDialog.dismiss();
+            mTextViewResult.setText(result);
+            Log.d(TAG3, "response  - " + result);
+
+            if (result == null){
+
+                mTextViewResult.setText(errorString);
+            }
+            else {
+
+                mJsonString = result;
+                showResult_team();
+            }
+        }
+
+
+        @Override
+        protected String doInBackground(String... params) {
+
+            String serverURL = params[0];
+
+
+            try {
+
+                URL url = new URL(serverURL);
+                HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+
+
+                httpURLConnection.setReadTimeout(5000);
+                httpURLConnection.setConnectTimeout(5000);
+                httpURLConnection.connect();
+
+
+                int responseStatusCode = httpURLConnection.getResponseCode();
+                Log.d(TAG3, "response code - " + responseStatusCode);
+
+                InputStream inputStream;
+                if(responseStatusCode == HttpURLConnection.HTTP_OK) {
+                    inputStream = httpURLConnection.getInputStream();
+                }
+                else{
+                    inputStream = httpURLConnection.getErrorStream();
+                }
+
+
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+                StringBuilder sb = new StringBuilder();
+                String line;
+
+                while((line = bufferedReader.readLine()) != null){
+                    sb.append(line);
+                }
+
+
+                bufferedReader.close();
+
+
+                return sb.toString().trim();
+
+
+            } catch (Exception e) {
+
+                Log.d(TAG3, "InsertData: Error ", e);
+                errorString = e.toString();
+
+                return null;
+            }
+
+        }
+    }
+
+
+    private void showResult_team(){
+        try {
+            JSONObject jsonObject = new JSONObject(mJsonString);
+            JSONArray jsonArray = jsonObject.getJSONArray(TAG_JSON);
+
+            for(int i=0;i<jsonArray.length();i++){
+
+                JSONObject item = jsonArray.getJSONObject(i);
+                String group_id = item.getString(TAG_GroupID);
+                String group_name = item.getString(TAG_GroupName);
+
+                // 팀에 맞는 이름 설정
+
+
+
+
+                /*
+                // 나중에 팀리스트 사용시
+                team_list = new ArrayList<String>();
+
+
+                if(date.equals(d)){
+                    team_list.add(plan); // 추후에 팀 그룹 id가 같을시로 수정
+                }
+
+
+                team_list.add("하띵"); // 우선 팀리스트에 있는 이름을 모두 출력하는 코드
+                team_list.add(group_name); // 우선 팀리스트에 있는 이름을 모두 출력하는 코드
+
+                updateLv2();
+                */
+
+                // id는 임시로 나중에 intent로 받아올것
+                if(group_id.equals("1")) {
+                    // 이름 갖고오기
+                    TextView text = (TextView) findViewById(R.id.title);
+                    text.setText(group_name);
+                }
+
+
+            }
+
+
+        } catch (JSONException e) {
+
+            Log.d(TAG3, "showResult : ", e);
+        }
+
+    }
+
 
 }
 
