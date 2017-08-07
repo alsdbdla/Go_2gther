@@ -1,11 +1,16 @@
 package app.gotogether.com.calendertest;
 
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -89,6 +94,18 @@ public class BossPage extends AppCompatActivity {
     //ListView mlistView;
     String mJsonString;
 
+    EditText edit_alarm;
+
+    EditText edit_content;
+
+    private String message = "";
+
+    private String content_message = "";
+
+    ArrayList<String> phone_list;
+
+    private static final int MY_PERMISSIONS_REQUEST_SEND_SMS =1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -121,6 +138,7 @@ public class BossPage extends AppCompatActivity {
         task2.execute("http://211.253.9.84/getmemberlist.php");
 
         // 리스너 설정
+        // 캘린더 버튼 누르면
         monthView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
@@ -142,39 +160,68 @@ public class BossPage extends AppCompatActivity {
             }
         });
 
-        /*
+        // 일정수정
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                AlertDialog.Builder alarm = new AlertDialog.Builder(BossPage.this);
+
+                alarm.setTitle("수정하기");       // 제목 설정
+                alarm.setMessage("일정을 수정해주세요");   // 내용 설정
+
+                edit_content = new EditText(BossPage.this);
+                alarm.setView(edit_content);
+                alarm.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        // 수정할 메세지
+                        content_message = edit_content.getText().toString();
+
+
+                        // 변경 할 일정의 id
+
+                        dialog.dismiss();
+                    }
+                });
+
+                alarm.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();     //닫기
+                        // Event
+                    }
+
+
+                });
+
+                Toast.makeText(BossPage.this, content_message, Toast.LENGTH_SHORT).show();
+
+                alarm.show();
+
+
+            }
+
+        });
+
+        // 일정삭제
         lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 // TODO Auto-generated method stub
 
-                // 이미 참석했을 경우, 아직 참석하지 않은 경우로 나누어야함 - 일일이 비교
-                // 참석한 경우는 롱클릭시 참석 취소
-                // 각각의 스케쥴 마다
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(BossPage.this);
-                builder.setTitle("참석여부");
-                builder.setMessage("참석하시겠습니까?");
-
-
-                me = "최예슬"; // 현재 접속자로 가정
-
-                part = new ArrayList<participant>(); // 예비 리스트
+                builder.setTitle("삭제");
+                builder.setMessage("삭제하시겠습니까?");
 
                 builder.setPositiveButton("네", new DialogInterface.OnClickListener(){
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        // 현재 접속하고 있는 사람의 이름을 리스트에 넣어준다
-
-                        part.add(new participant(2017, 7, 25, me)); // 참석자 목록에 나를 넣는다
-
-                        LayoutInflater inflater = (LayoutInflater) getLayoutInflater();
-                        View customView = inflater.inflate(R.layout.activity_information, null);
-
-                        // 다이얼로그에 리스트뷰 나타내기
-                        information = (ListView)customView.findViewById(R.id.listView2);
-                        adapter2 = new ArrayAdapter(BossPage.this, R.layout.activity_information, part);
-                        information.setAdapter(adapter2);
+                        Toast.makeText(BossPage.this, "삭제", Toast.LENGTH_SHORT).show();
+                        // id만 넘기기
 
 
                     }});
@@ -189,7 +236,6 @@ public class BossPage extends AppCompatActivity {
 
         });
 
-        */
 
         monthText = (TextView) findViewById(R.id.monthText);
         setMonthText();
@@ -243,7 +289,6 @@ public class BossPage extends AppCompatActivity {
                 builder.setTitle("일정추가");
 
                 View view = (View) getLayoutInflater().inflate(R.layout.activity_datetimepicker, null);
-                edit = (EditText)view.findViewById(R.id.editText2);
 
                 // 서버
                 mTextViewResult = (TextView)findViewById(R.id.result_text); // 성공하면 insert
@@ -251,10 +296,14 @@ public class BossPage extends AppCompatActivity {
                 builder.setPositiveButton("추가", new DialogInterface.OnClickListener(){
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+
                         startYear = dpStartDate.getYear();
                         startMonth = dpStartDate.getMonth() + 1;
                         startDay = dpStartDate.getDayOfMonth();
+
+                        edit = (EditText)((AlertDialog)dialog).findViewById(R.id.editText2);
                         content = edit.getText().toString(); // 일정내용
+
                         String y = String.valueOf(startYear);
                         String m = String.valueOf(startMonth);
                         String d = String.valueOf(startDay);
@@ -265,11 +314,10 @@ public class BossPage extends AppCompatActivity {
                         // 일정을 리스트뷰에 추가
                         //dayData.add(new DayData(startYear, startMonth, startDay, content));
 
-
                         String date = y + m + d;
 
                         InsertData task = new InsertData();
-                        task.execute(date, "하");
+                        task.execute(date, content);
 
                         // 후에 추가하면 동그라미 버튼 나타나게 or 색이 바뀌게
                         dialog.dismiss();
@@ -293,10 +341,7 @@ public class BossPage extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-                        TextView text = (TextView) findViewById(R.id.title);
-                        String title = et.getText().toString();
-
-                        text.setText(title);
+                      // 나중에 intent로 받을 그룹id 값 넣기
 
                         dialog.dismiss();
                     }
@@ -318,9 +363,20 @@ public class BossPage extends AppCompatActivity {
 
             case R.id.member :
 
-                AlertDialog.Builder member = new AlertDialog.Builder(BossPage.this);
+                //ArrayList<String> team = new ArrayList<String>();
+                //team.add("a");
+                //team.add("b");
+
+                GetData3 task = new GetData3();
+                task.execute("http://211.253.9.84/getmemberlist.php");
 
                 final LinearLayout member_view = (LinearLayout)View.inflate(this, R.layout.activity_information, null);
+                ListView list = (ListView)member_view.findViewById(R.id.team_listView);
+                adapter= new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,team_list);
+                list.setAdapter(adapter);
+
+                AlertDialog.Builder member = new AlertDialog.Builder(BossPage.this);
+
                 member.setView(member_view); // 리스트뷰 다이얼로그에 넣기
                 member.setTitle("팀원관리");       // 제목 설정
                 member.setPositiveButton("확인", new DialogInterface.OnClickListener(){
@@ -330,15 +386,65 @@ public class BossPage extends AppCompatActivity {
 
                     }});
 
-                member.setAdapter(addressAdapter, null);
-
                 member.show();
 
                 break;
 
+            // 팀원 전체에게 알람 보내기 (문자메세지)
+
             case R.id.alarm :
 
+                AlertDialog.Builder alarm = new AlertDialog.Builder(BossPage.this);
+
+                alarm.setTitle("알림보내기");       // 제목 설정
+                alarm.setMessage("팀원들에게 보낼 메세지를 입력해주세요");   // 내용 설정
+
+                edit_alarm = new EditText(this);
+                alarm.setView(edit_alarm);
+                alarm.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        String tel = "01020891228";
+
+                        message = edit_alarm.getText().toString();
+
+                        //String tel = value2;
+                        if (ContextCompat.checkSelfPermission(BossPage.this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+                            ActivityCompat.requestPermissions(BossPage.this, new String[]{Manifest.permission.SEND_SMS},MY_PERMISSIONS_REQUEST_SEND_SMS);
+                        }
+                        else{
+
+                            GetData3 task = new GetData3();
+                            task.execute("http://211.253.9.84/getmemberlist.php");
+
+                            SmsManager smsManager = SmsManager.getDefault();
+
+                            for(int i=0;i< phone_list.size();i++){
+                                smsManager.sendTextMessage(phone_list.get(i) ,null,message,null,null);
+                                //Toast.makeText(BossPage.this, phone_list.get(i), Toast.LENGTH_SHORT).show();
+
+                            }
+                        }
+
+                        dialog.dismiss();
+                    }
+                });
+
+                alarm.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();     //닫기
+                        // Event
+                    }
+
+
+                });
+
+                alarm.show();
+
                 break;
+
 
         }
     }
@@ -388,7 +494,7 @@ public class BossPage extends AppCompatActivity {
             String plan = (String)params[1];
             int groupId = 123;
 
-            String serverURL = "http://211.253.9.84/schedule.php";
+            String serverURL = "http://211.253.9.84/insertschedule.php";
             String postParameters = "groupId=" + groupId + "&date=" + date + "&plan=" + plan;
 
 
@@ -542,7 +648,6 @@ public class BossPage extends AppCompatActivity {
         }
     }
 
-
     private void showResult_sche(){
         try {
 
@@ -564,10 +669,10 @@ public class BossPage extends AppCompatActivity {
                 String d = year + month + day ;
 
                 //Toast.makeText(BossPage.this, date, Toast.LENGTH_SHORT).show();
-                Toast.makeText(BossPage.this, d, Toast.LENGTH_SHORT).show();
+                //Toast.makeText(BossPage.this, d, Toast.LENGTH_SHORT).show();
 
-                    if(date.equals(d)){
-                        as.add(plan); // 스케쥴 가져오기
+                if(date.equals(d)){
+                    as.add(plan); // 스케쥴 가져오기
                 }
 
                 updateLv();
@@ -800,11 +905,8 @@ public class BossPage extends AppCompatActivity {
             JSONObject jsonObject = new JSONObject(mJsonString);
             JSONArray jsonArray = jsonObject.getJSONArray(TAG_JSON3);
 
-            LayoutInflater inflater = (LayoutInflater) getLayoutInflater();
-            View customView = inflater.inflate(R.layout.activity_information, null);
-
-            team_lv = (ListView)customView.findViewById(R.id.team_listView);
             team_list = new ArrayList<String>();
+            phone_list = new ArrayList<String>();
 
             int member_num = 0;
             String boss_name = "";
@@ -823,8 +925,10 @@ public class BossPage extends AppCompatActivity {
                         boss_name = name;
                     }
                     team_list.add(name); // 추후에 팀 그룹 id가 같을시로 수정
+                    phone_list.add(phone);
                     member_num ++;
                 }
+
 
             }
 
@@ -836,8 +940,6 @@ public class BossPage extends AppCompatActivity {
             TextView bossName = (TextView)findViewById(R.id.bossName);
             bossName.setText(boss_name);
 
-            adapter= new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,team_list);
-            team_lv.setAdapter(adapter);
 
         } catch (JSONException e) {
 
@@ -847,15 +949,3 @@ public class BossPage extends AppCompatActivity {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
