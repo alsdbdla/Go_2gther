@@ -37,6 +37,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 
+import static app.gotogether.com.calendertest.R.id.listView;
 
 public class BossPage extends AppCompatActivity {
 
@@ -104,6 +105,12 @@ public class BossPage extends AppCompatActivity {
 
     ArrayList<String> phone_list;
 
+    private String d = "";
+
+    private String p_data = "";
+
+    private String sche_id = "";
+
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS =1;
 
     @Override
@@ -124,7 +131,7 @@ public class BossPage extends AppCompatActivity {
 
         //dayData = new ArrayList<DayData>();
 
-        lv = (ListView)findViewById(R.id.listView);
+        lv = (ListView)findViewById(listView);
 
         // 그룹 정보 불러오기
         mTextViewResult = (TextView)findViewById(R.id.result_text);
@@ -137,24 +144,24 @@ public class BossPage extends AppCompatActivity {
         GetData3 task2 = new GetData3();
         task2.execute("http://211.253.9.84/getmemberlist.php");
 
+
+
         // 리스너 설정
         // 캘린더 버튼 누르면
         monthView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
-                // 서버 - 정보 갖고오기
-
                 // 현재 선택한 일자 정보 표시
                 curItem = (MonthItem) monthViewAdapter.getItem(position);
-                //curDay = curItem.getDay();
+                curDay = curItem.getDay();
 
-                //String day = String.valueOf(curDay);
-
-                //Toast.makeText(BossPage.this, day, Toast.LENGTH_SHORT).show();
+                // 서버 - 정보 갖고오기
 
                 GetData task = new GetData();
                 task.execute("http://211.253.9.84/getschedule.php");
+
+
 
 
             }
@@ -165,6 +172,18 @@ public class BossPage extends AppCompatActivity {
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                // 비교할 값 갖고오기
+
+                p_data= as.get(position);
+                //Toast.makeText(BossPage.this, p_data, Toast.LENGTH_SHORT).show();
+                String day = String.valueOf(curItem.getDay()); // 현재 날짜와 같으면
+                String year = String.valueOf(monthViewAdapter.getCurYear());
+                String month = String.valueOf(monthViewAdapter.getCurMonth() + 1);
+                d = year + month + day ;
+
+                GetData_test task = new GetData_test();
+                task.execute("http://211.253.9.84/getschedule.php");
 
                 AlertDialog.Builder alarm = new AlertDialog.Builder(BossPage.this);
 
@@ -177,11 +196,17 @@ public class BossPage extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-                        // 수정할 메세지
                         content_message = edit_content.getText().toString();
 
+                        Toast.makeText(BossPage.this, sche_id, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(BossPage.this, content_message, Toast.LENGTH_SHORT).show();
 
-                        // 변경 할 일정의 id
+                        InsertData2 task2 = new InsertData2();
+                        task2.execute(sche_id, content_message);
+
+                        GetData task3 = new GetData();
+                        task3.execute("http://211.253.9.84/getschedule.php");
+
 
                         dialog.dismiss();
                     }
@@ -212,6 +237,15 @@ public class BossPage extends AppCompatActivity {
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 // TODO Auto-generated method stub
 
+                // 비교할 값 갖고오기
+
+                p_data= as.get(position);
+                //Toast.makeText(BossPage.this, p_data, Toast.LENGTH_SHORT).show();
+                String day = String.valueOf(curItem.getDay()); // 현재 날짜와 같으면
+                String year = String.valueOf(monthViewAdapter.getCurYear());
+                String month = String.valueOf(monthViewAdapter.getCurMonth() + 1);
+                d = year + month + day ;
+
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(BossPage.this);
                 builder.setTitle("삭제");
@@ -220,8 +254,12 @@ public class BossPage extends AppCompatActivity {
                 builder.setPositiveButton("네", new DialogInterface.OnClickListener(){
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Toast.makeText(BossPage.this, "삭제", Toast.LENGTH_SHORT).show();
+                        //Toast.makeText(BossPage.this, "삭제", Toast.LENGTH_SHORT).show();
                         // id만 넘기기
+                        GetData_test task = new GetData_test();
+                        task.execute("http://211.253.9.84/getschedule.php");
+
+                        Toast.makeText(BossPage.this, sche_id, Toast.LENGTH_SHORT).show();
 
 
                     }});
@@ -314,10 +352,10 @@ public class BossPage extends AppCompatActivity {
                         // 일정을 리스트뷰에 추가
                         //dayData.add(new DayData(startYear, startMonth, startDay, content));
 
-                        String date = y + m + d;
+                        String date_D = y + m + d;
 
                         InsertData task = new InsertData();
-                        task.execute(date, content);
+                        task.execute(date_D, content);
 
                         // 후에 추가하면 동그라미 버튼 나타나게 or 색이 바뀌게
                         dialog.dismiss();
@@ -438,7 +476,6 @@ public class BossPage extends AppCompatActivity {
                         // Event
                     }
 
-
                 });
 
                 alarm.show();
@@ -556,7 +593,220 @@ public class BossPage extends AppCompatActivity {
         }
     }
 
-    // 서버코드2
+    // 데이터 수정
+    class InsertData2 extends AsyncTask<String, Void, String> {
+        ProgressDialog progressDialog;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            progressDialog = ProgressDialog.show(BossPage.this,
+                    "Please Wait", null, true, true);
+        }
+
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+
+            progressDialog.dismiss();
+            mTextViewResult.setText(result);
+            Log.d(TAG, "POST response  - " + result);
+        }
+
+
+        @Override
+        protected String doInBackground(String... params) {
+
+            String id = (String)params[0];
+            String plan = (String)params[1];
+
+            String serverURL = "http://211.253.9.84/updateschedule.php";
+            String postParameters = "id=" + id + "&plan=" + plan;
+
+
+            try {
+
+                URL url = new URL(serverURL);
+                HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+
+
+                httpURLConnection.setReadTimeout(5000);
+                httpURLConnection.setConnectTimeout(5000);
+                httpURLConnection.setRequestMethod("POST");
+                //httpURLConnection.setRequestProperty("content-type", "application/json");
+                httpURLConnection.setDoInput(true);
+                httpURLConnection.connect();
+
+
+                OutputStream outputStream = httpURLConnection.getOutputStream();
+                outputStream.write(postParameters.getBytes("UTF-8"));
+                outputStream.flush();
+                outputStream.close();
+
+
+                int responseStatusCode = httpURLConnection.getResponseCode();
+                Log.d(TAG, "POST response code - " + responseStatusCode);
+
+                InputStream inputStream;
+                if(responseStatusCode == HttpURLConnection.HTTP_OK) {
+                    inputStream = httpURLConnection.getInputStream();
+                }
+                else{
+                    inputStream = httpURLConnection.getErrorStream();
+                }
+
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+                StringBuilder sb = new StringBuilder();
+                String line = null;
+
+                while((line = bufferedReader.readLine()) != null){
+                    sb.append(line);
+                }
+
+
+                bufferedReader.close();
+
+
+                return sb.toString();
+
+
+            } catch (Exception e) {
+
+                Log.d(TAG, "InsertData: Error ", e);
+
+                return new String("Error: " + e.getMessage());
+            }
+
+        }
+    }
+
+    // 서버코드 스케쥴 아이디 받아오기
+
+    private class GetData_test extends AsyncTask<String, Void, String>{
+        ProgressDialog progressDialog;
+        String errorString = null;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            progressDialog = ProgressDialog.show(BossPage.this,
+                    "Please Wait", null, true, true);
+        }
+
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+
+            progressDialog.dismiss();
+            mTextViewResult.setText(result);
+            Log.d(TAG2, "response  - " + result);
+
+            if (result == null){
+
+                mTextViewResult.setText(errorString);
+            }
+            else {
+
+                mJsonString = result;
+                showResult_sche_test();
+            }
+        }
+
+
+        @Override
+        protected String doInBackground(String... params) {
+
+            String serverURL = params[0];
+
+
+            try {
+
+                URL url = new URL(serverURL);
+                HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+
+
+                httpURLConnection.setReadTimeout(5000);
+                httpURLConnection.setConnectTimeout(5000);
+                httpURLConnection.connect();
+
+
+                int responseStatusCode = httpURLConnection.getResponseCode();
+                Log.d(TAG2, "response code - " + responseStatusCode);
+
+                InputStream inputStream;
+                if(responseStatusCode == HttpURLConnection.HTTP_OK) {
+                    inputStream = httpURLConnection.getInputStream();
+                }
+                else{
+                    inputStream = httpURLConnection.getErrorStream();
+                }
+
+
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+                StringBuilder sb = new StringBuilder();
+                String line;
+
+                while((line = bufferedReader.readLine()) != null){
+                    sb.append(line);
+                }
+
+
+                bufferedReader.close();
+
+
+                return sb.toString().trim();
+
+
+            } catch (Exception e) {
+
+                Log.d(TAG2, "InsertData: Error ", e);
+                errorString = e.toString();
+
+                return null;
+            }
+
+        }
+    }
+
+    private void showResult_sche_test(){
+        try {
+
+            JSONObject jsonObject = new JSONObject(mJsonString);
+            JSONArray jsonArray = jsonObject.getJSONArray(TAG_JSON2);
+
+            for(int i=0;i<jsonArray.length();i++){
+
+                JSONObject item = jsonArray.getJSONObject(i);
+                String date = item.getString(TAG_Date);
+                String id = item.getString(TAG_ID2);
+                String plan = item.getString(TAG_Plan);
+
+
+
+                if(date.equals(d)){
+                    if(plan.equals(p_data)){
+                        sche_id = id;
+                    }
+                }
+
+            }
+
+        } catch (JSONException e) {
+
+            Log.d(TAG2, "showResult : ", e);
+        }
+
+    }
+
+    // 서버코드 스케쥴 받아오기
 
     private class GetData extends AsyncTask<String, Void, String>{
         ProgressDialog progressDialog;
