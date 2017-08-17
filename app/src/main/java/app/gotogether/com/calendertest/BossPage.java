@@ -91,6 +91,18 @@ public class BossPage extends AppCompatActivity {
     private static final String TAG_Position ="position";
     private static final String TAG_Phone ="phone";
 
+    // 서버 - 대기자리스트
+
+    private static String TAG5 = "admission_json";
+
+    private static final String TAG_JSON5="admission_json";
+    private static final String TAG_GroupID5 = "group_id";
+    private static final String TAG_ID5 = "id";
+    private static final String TAG_Name5 = "name";
+    private static final String TAG_Phone5 ="phone";
+
+    ArrayList<String> items;
+
     //ArrayList<HashMap<String, String>> mArrayList;
     //ListView mlistView;
     String mJsonString;
@@ -112,6 +124,7 @@ public class BossPage extends AppCompatActivity {
     private String sche_id = "";
 
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS =1;
+    final static int SUB_ACTIVITY_CODE = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -366,6 +379,15 @@ public class BossPage extends AppCompatActivity {
 
                 break;
 
+            case R.id.newbtn:
+
+
+                GetData_wait task_wait = new GetData_wait();
+                task_wait.execute("http://211.253.9.84/getadmission.php");
+
+
+             break;
+
             case R.id.btnTitle :
 
                 AlertDialog.Builder ad = new AlertDialog.Builder(BossPage.this);
@@ -379,7 +401,7 @@ public class BossPage extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-                      // 나중에 intent로 받을 그룹id 값 넣기
+
 
                         dialog.dismiss();
                     }
@@ -1197,5 +1219,224 @@ public class BossPage extends AppCompatActivity {
         }
 
     }
+
+    private class GetData_wait extends AsyncTask<String, Void, String>{
+        ProgressDialog progressDialog;
+        String errorString = null;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            progressDialog = ProgressDialog.show(BossPage.this,
+                    "Please Wait", null, true, true);
+        }
+
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+
+            progressDialog.dismiss();
+            mTextViewResult.setText(result);
+            Log.d(TAG5, "response  - " + result);
+
+            if (result == null){
+
+                mTextViewResult.setText(errorString);
+            }
+            else {
+
+                mJsonString = result;
+                showResult_wait();
+            }
+        }
+
+
+        @Override
+        protected String doInBackground(String... params) {
+
+            String serverURL = params[0];
+
+
+            try {
+
+                URL url = new URL(serverURL);
+                HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+
+
+                httpURLConnection.setReadTimeout(5000);
+                httpURLConnection.setConnectTimeout(5000);
+                httpURLConnection.connect();
+
+
+                int responseStatusCode = httpURLConnection.getResponseCode();
+                Log.d(TAG5, "response code - " + responseStatusCode);
+
+                InputStream inputStream;
+                if(responseStatusCode == HttpURLConnection.HTTP_OK) {
+                    inputStream = httpURLConnection.getInputStream();
+                }
+                else{
+                    inputStream = httpURLConnection.getErrorStream();
+                }
+
+
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+                StringBuilder sb = new StringBuilder();
+                String line;
+
+                while((line = bufferedReader.readLine()) != null){
+                    sb.append(line);
+                }
+
+
+                bufferedReader.close();
+
+
+                return sb.toString().trim();
+
+
+            } catch (Exception e) {
+
+                Log.d(TAG5, "InsertData: Error ", e);
+                errorString = e.toString();
+
+                return null;
+            }
+
+        }
+    }
+
+
+    private void showResult_wait(){
+
+        items = new ArrayList<String>();
+
+        try {
+            JSONObject jsonObject = new JSONObject(mJsonString);
+            JSONArray jsonArray = jsonObject.getJSONArray(TAG_JSON5);
+
+            for(int i=0;i<jsonArray.length();i++){
+
+                JSONObject item = jsonArray.getJSONObject(i);
+                String group_id = item.getString(TAG_GroupID5);
+                String id = item.getString(TAG_ID5);
+                String name = item.getString(TAG_Name5);
+                String phone = item.getString(TAG_Phone5);
+
+                items.add(name);
+
+
+            }
+
+            final String[] simpleArray = new String[ items.size() ];
+            items.toArray( simpleArray );
+
+            final ArrayList<String> selectedItems = new ArrayList<String>();
+            final ArrayList<String> nselectedItems = new ArrayList<String>();
+
+            AlertDialog.Builder dialog = new AlertDialog.Builder(BossPage.this);
+
+            dialog.setTitle("팀원을 수락해주세요")
+
+                        .setMultiChoiceItems(simpleArray,
+
+                                new boolean[]{false, false, false, false, false, false, false, false},
+
+                                new DialogInterface.OnMultiChoiceClickListener() {
+
+                                    @Override
+
+                                    public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+
+                                        if(isChecked) {
+
+                                            selectedItems.add(simpleArray[which]);
+                                            //nselectedItems.remove(simpleArray[which]);
+
+                                        }
+
+                                        else{
+
+                                            selectedItems.remove(simpleArray[which]);
+                                            //nselectedItems.add(simpleArray[which]);
+
+                                        }
+
+                                    }
+
+                                })
+
+                    .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+
+                        @Override
+
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            for(int i = 0; i < items.size(); i++){
+
+                                int count = 0;
+
+                                for(int j = 0; j < selectedItems.size(); j++){
+
+                                    if(simpleArray[i].equals(selectedItems.get(j))){
+                                        count ++;
+                                    }
+                                }
+
+                                if(count == 0){
+                                    nselectedItems.add(simpleArray[i]);
+                                }
+                            }
+
+                            if( selectedItems.size() == 0 ){
+
+                                Toast.makeText(BossPage.this, "선택된 멤버가 없습니다.", Toast.LENGTH_SHORT).show();
+
+                            }
+
+                            else {
+
+                                String items = "";
+
+                                for(String selectedItem : selectedItems) {
+
+                                    Toast.makeText(BossPage.this, "선택 " + selectedItem, Toast.LENGTH_SHORT).show();
+
+                                }
+
+                                String nitems = "";
+
+                                for(String nselectedItem : nselectedItems) {
+
+                                    Toast.makeText(BossPage.this, "선택no " + nselectedItem, Toast.LENGTH_SHORT).show();
+
+                                }
+
+                                //초기화
+
+                                selectedItems.clear();
+                                nselectedItems.clear();
+
+
+
+                            }
+
+                        }
+
+                    }).create().show();
+
+
+
+        } catch (JSONException e) {
+
+            Log.d(TAG, "showResult : ", e);
+        }
+
+    }
+
 
 }
