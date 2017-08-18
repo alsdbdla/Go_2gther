@@ -1,8 +1,8 @@
 package app.gotogether.com.calendertest;
 
 
-import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,8 +24,8 @@ public class MyAdapter extends BaseAdapter {
     private int layout;
     private ArrayList<MyData> myDataList;
     private LayoutInflater layoutInflater;
-    Dialog dig;
-    AlertDialog.Builder builder;
+    private String result = "";
+
     public MyAdapter(Context context, int layout, ArrayList<MyData> myDataList) {
         this.context = context;
         this.layout = layout;
@@ -49,8 +49,10 @@ public class MyAdapter extends BaseAdapter {
     @Override
     public long getItemId(int position) {
         //어떠한 위치에 있는 원본 데이터의 항복의 식별자를 반환
-        return myDataList.get(position).get_id();
+        int r = Integer.parseInt(myDataList.get(position).get_id());
+        return r;
     }
+
 
     @Override
     public View getView(int position, View view, ViewGroup viewGroup) {
@@ -59,28 +61,51 @@ public class MyAdapter extends BaseAdapter {
 
         if (view == null) {
             view = layoutInflater.inflate(layout, viewGroup, false);
+
         }
         //view안에서 찾기 때문에 view.findviewbyid를 해주어야 한다.
         TextView textNo = (TextView) view.findViewById(R.id.textViewNo);
         TextView textName = (TextView) view.findViewById(R.id.textViewName);
-        Button btnCheck = (Button) view.findViewById(R.id.buttonCheck);
-        Button btnRefuse = (Button)view.findViewById(R.id.Refuse);
+        Button btnCheck = (Button) view.findViewById(R.id.btn);
         //숫자는 아이디를 찾기 때문에 문자열로 변환해주어야 한다.
-        textNo.setText(Integer.valueOf(myDataList.get(position).get_id()).toString());
+        textNo.setText(myDataList.get(position).get_id());
         textName.setText(myDataList.get(position).getName());
 
         btnCheck.setOnClickListener(new Button.OnClickListener() {
+
             public void onClick(View view) {
-                Toast.makeText(context, myDataList.get(pos).getName() + "선택", Toast.LENGTH_SHORT).show();
+
+                AlertDialog.Builder boss = new AlertDialog.Builder(context);
+
+                boss.setTitle("팀장위임");       // 제목 설정
+                boss.setPositiveButton("확인", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        result = myDataList.get(pos).get_id();
+                        Toast.makeText(context, result + "선택", Toast.LENGTH_SHORT).show();
+
+                    }});
+                boss.setNegativeButton("취소", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }});
+
+
+                boss.show();
+
 
             }
         });
-        btnRefuse.setOnClickListener(new Button.OnClickListener() {
-            public void onClick(View view) {
-                Toast.makeText(context, myDataList.get(pos).getName() + "선택", Toast.LENGTH_SHORT).show();
-            }
-        });
+
 
         return view;
     }
+
+    public String getResult() {
+        return result;
+    }
+
+
 }

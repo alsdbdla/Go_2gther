@@ -10,21 +10,21 @@ public class MyData {
     // 원본 데이터를 담음
     // 여기까지가 레이아웃을 만들고 원본 데이터를 담는 곳을 만드는 과정 그 다음 어댑터 만들어야함
 
-    private int _id;
+    private String _id;
     private String name;
     //alt + insert : 게터 세터 생성, 생성자 생성
 
 
-    public MyData(int _id, String name) {
+    public MyData(String _id, String name) {
         this._id = _id;
         this.name = name;
     }
 
-    public int get_id() {
+    public String get_id() {
         return _id;
     }
 
-    public void set_id(int _id) {
+    public void set_id(String _id) {
         this._id = _id;
     }
 

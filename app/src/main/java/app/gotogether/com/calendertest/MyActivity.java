@@ -206,10 +206,6 @@ public class MyActivity extends AppCompatActivity {
         monthText.setText(curYear + "년 " + (curMonth + 1) + "월");
     }
 
-
-
-
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_context, menu);
